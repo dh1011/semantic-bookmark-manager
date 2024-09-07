@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Bookmarks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Add Bookmarks</h1>
+    <a href="{{ url_for('index') }}" class="back-link">Back to bookmarks</a>
+    <form method="post">
+        <textarea name="bookmarks" placeholder="Enter bookmarks, one per line" required></textarea><br>
+        <input type="submit" value="Add Bookmarks">
+    </form>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

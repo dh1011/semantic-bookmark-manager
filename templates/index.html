@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bookmarks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Bookmarks</h1>
+    <form class="search-form" action="/search" method="get">
+        <input type="text" name="query" placeholder="Search bookmarks..." required>
+        <input type="submit" value="Search">
+    </form>
+    <div class="action-buttons">
+        <a href="{{ url_for('add_bookmark') }}" class="add-button">Add Bookmark</a>
+        <span class="separator">|</span>
+        <a href="{{ url_for('config_page') }}" class="config-link">Configuration</a>
+    </div>
+    <ul style="list-style-type: none; padding: 0;">
+    {% for bookmark in bookmarks %}
+        <li class="bookmark-item">
+            <a href="{{ bookmark.link }}">{{ bookmark.base_url }}</a>
+            <a class="edit-button" onclick="toggleEdit(this)">Edit</a>
+            <a class="save-button" onclick="saveChanges(this, '{{ bookmark.link }}')">Save</a>
+            <a href="{{ url_for('remove_bookmark', link=bookmark.link) }}" class="remove-button" onclick="return confirmRemove(this)">Remove</a><br>
+            <span class="bookmark-summary">{{ bookmark.summary }}</span>
+        </li>
+    {% endfor %}
+    </ul>
+    <div class="pagination">
+    {% if page > 1 %}
+        <a href="?page={{ page - 1 }}">Previous</a>
+    {% endif %}
+    Page {{ page }} of {{ total_pages }}
+    {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}">Next</a>
+    {% endif %}
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

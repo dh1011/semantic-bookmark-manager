@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "9696:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production

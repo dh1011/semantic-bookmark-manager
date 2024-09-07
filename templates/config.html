@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configuration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Configuration</h1>
+    <a href="{{ url_for('index') }}" class="back-link">Back to bookmarks</a>
+    <form method="post" id="configForm">
+        <h2>Service</h2>
+        <select name="service" id="serviceSelect">
+            <option value="google" {% if config.service == 'google' %}selected{% endif %}>Google</option>
+            <option value="ollama" {% if config.service == 'ollama' %}selected{% endif %}>Ollama</option>
+        </select>
+
+        <h2>Google API Key</h2>
+        <input type="text" name="google_api_key" value="{{ config.google_api_key }}">
+
+        <h2>Ollama Base URL</h2>
+        <input type="text" name="ollama_base_url" value="{{ config.ollama_base_url }}">
+
+        <input type="submit" value="Save Configuration">
+    </form>
+
+    <h2>Current Configuration</h2>
+    <p>Service: {{ config.service }}</p>
+    <p>Model: 
+        {% if config.service == 'google' %}
+            Gemini 1.5 Flash (LLM) + Text Embedding 004 (Embedding)
+        {% else %}
+            Llama3.1 (LLM) + All-MiniLM (Embedding)
+        {% endif %}
+    </p>
+
+    <button onclick="testModels()">Test Models</button>
+    <p id="testResult"></p>
+
+    <button onclick="embedAllLinks()" id="embedButton">Embed All Links</button>
+    <p id="embedResult"></p>
+
+    <script>
+    function testModels() {
+        fetch('/test_models')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('testResult').innerText = data.message;
+            })
+            .catch(error => {
+                document.getElementById('testResult').innerText = "Error: " + error;
+            });
+    }
+
+    function embedAllLinks() {
+        const button = document.getElementById('embedButton');
+        const result = document.getElementById('embedResult');
+        button.disabled = true;
+        button.innerText = 'Embedding... Please wait';
+        result.innerText = 'Embedding in progress...';
+
+        fetch('/embed_all_links', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                result.innerText = data.message;
+            })
+            .catch(error => {
+                result.innerText = "Error: " + error;
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.innerText = 'Embed All Links';
+            });
+    }
+
+    document.getElementById('configForm').addEventListener('submit', function(event) {
+        const oldService = '{{ config.service }}';
+        const newService = document.getElementById('serviceSelect').value;
+        if (oldService !== newService) {
+            alert('You have changed the service. Please remember to embed all links after saving the configuration to ensure compatibility with the new model.');
+        }
+    });
+    </script>
+</body>
+</html>

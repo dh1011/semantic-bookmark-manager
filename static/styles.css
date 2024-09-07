@@ -1,0 +1,107 @@
+body {
+    background-color: #333333;
+    color: #ffffff;
+    padding: 20px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.5;
+}
+
+.bookmark-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-bottom: 1px solid #555555;
+}
+
+.bookmark-summary, .score {
+    font-style: italic;
+    color: #cccccc;
+}
+
+.edit-button, .save-button, .add-button, .config-link, .remove-button {
+    color: #4da6ff;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.remove-button {
+    color: #ff6666;
+    display: none;
+}
+
+.editing .remove-button {
+    display: inline;
+}
+
+.editing .edit-button {
+    display: none;
+}
+
+.editing .save-button {
+    display: inline;
+}
+
+.save-button {
+    display: none;
+}
+
+a {
+    color: #4da6ff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.search-form {
+    margin-bottom: 20px;
+}
+
+.search-form input[type="text"] {
+    width: 70%;
+    padding: 10px;
+}
+
+input[type="submit"] {
+    padding: 10px 20px;
+    background-color: #4da6ff;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.pagination {
+    margin-top: 20px;
+}
+
+.timestamp {
+    color: #999999;
+}
+
+textarea {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 10px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #4da6ff;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    .search-form input[type="text"],
+    .search-form input[type="submit"] {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
