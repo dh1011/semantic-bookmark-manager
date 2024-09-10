@@ -1,17 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Bookmarks</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.16.29/font/lucide.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            padding-top: 2rem;
+        }
+        .card {
+            background-color: #1e1e1e;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        .card-header {
+            background-color: #2c2c2c;
+            border-bottom: none;
+        }
+        .btn-primary {
+            background-color: #ff6600;
+            border-color: #ff6600;
+        }
+        .btn-primary:hover {
+            background-color: #e65c00;
+            border-color: #e65c00;
+        }
+        .btn-outline-secondary {
+            color: #ff6600;
+            border-color: #ff6600;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #ff6600;
+            color: #121212;
+        }
+        textarea {
+            background-color: #2c2c2c;
+            border: 1px solid #444;
+            color: #e0e0e0;
+        }
+        textarea:focus {
+            background-color: #3c3c3c;
+            border-color: #ff6600;
+            color: #e0e0e0;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
+        }
+    </style>
 </head>
 <body>
-    <h1>Add Bookmarks</h1>
-    <a href="{{ url_for('index') }}" class="back-link">Back to bookmarks</a>
-    <form method="post">
-        <textarea name="bookmarks" placeholder="Enter bookmarks, one per line" required></textarea><br>
-        <input type="submit" value="Add Bookmarks">
-    </form>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Add Bookmarks</h2>
+                <p class="card-text text-muted">Enter your bookmarks, one per line</p>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('add_bookmark') }}">
+                    <div class="mb-3">
+                        <textarea name="bookmarks" id="bookmarkInput" placeholder="Enter your bookmarks (one per line)" rows="5" class="form-control" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="lucide-plus me-2"></i>
+                        Add Bookmark(s)
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary w-100">
+                    <i class="lucide-arrow-left me-2"></i>
+                    Back to List
+                </a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

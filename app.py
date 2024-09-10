@@ -19,7 +19,10 @@ CONFIG_FILE = 'config.json'
 DEFAULT_CONFIG = {
     'service': 'google',
     'google_api_key': '',
-    'ollama_base_url': 'http://localhost:11434'
+    'ollama_api_key': '',
+    'ollama_base_url': 'http://localhost:11434',
+    'ollama_llm_model': 'llama3.1',
+    'ollama_embedding_model': 'all-minilm'
 }
 def load_config():
     """Load configuration from file or return default if file not found."""
@@ -229,7 +232,6 @@ def update_bookmark():
         if bookmark['link'] == data['original_link']:
             bookmark['link'] = data['new_link']
             bookmark['summary'] = data['new_summary']
-            bookmark['base_url'] = data['new_link']
             write_bookmarks(bookmarks)
             return jsonify({"success": True})
     return jsonify({"success": False})
@@ -297,6 +299,9 @@ def config_page():
             config['google_api_key'] = request.form['google_api_key']
         else:
             config['ollama_base_url'] = request.form['ollama_base_url']
+            config['ollama_llm_model'] = request.form['ollama_llm_model']
+            config['ollama_embedding_model'] = request.form['ollama_embedding_model']
+            config['ollama_api_key'] = request.form['ollama_api_key']
         save_config(config)
     return render_template('config.html', config=config)
 

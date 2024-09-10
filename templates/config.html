@@ -1,85 +1,197 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Configuration</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Configuration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            padding-top: 2rem;
+        }
+        .card {
+            background-color: #1e1e1e;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        .card-header {
+            background-color: #2c2c2c;
+            border-bottom: none;
+        }
+        .btn-primary {
+            background-color: #ff6600;
+            border-color: #ff6600;
+        }
+        .btn-primary:hover {
+            background-color: #e65c00;
+            border-color: #e65c00;
+        }
+        .btn-outline-secondary {
+            color: #ff6600;
+            border-color: #ff6600;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #ff6600;
+            color: #121212;
+        }
+        .toast {
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            position: fixed; 
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 1050;
+        }
+        .form-control, .form-check-input, .form-select {
+            background-color: #2c2c2c;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        .form-control:focus, .form-check-input:focus, .form-select:focus {
+            background-color: #3c3c3c;
+            border-color: #ff6600;
+            color: #e0e0e0;
+            box-shadow: 0 0 0 0.25rem rgba(255, 102, 0, 0.25);
+        }
+        .form-check-input:checked {
+            background-color: #ff6600;
+            border-color: #ff6600;
+        }
+    </style>
 </head>
 <body>
-    <h1>Configuration</h1>
-    <a href="{{ url_for('index') }}" class="back-link">Back to bookmarks</a>
-    <form method="post" id="configForm">
-        <h2>Service</h2>
-        <select name="service" id="serviceSelect">
-            <option value="google" {% if config.service == 'google' %}selected{% endif %}>Google</option>
-            <option value="ollama" {% if config.service == 'ollama' %}selected{% endif %}>Ollama</option>
-        </select>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">API Configuration</h2>
+                <p class="card-text text-muted">Configure your AI service settings</p>
+            </div>
+            <div class="card-body">
+                <form id="configForm" method="POST" action="{{ url_for('config_page') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Select Service</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="service" id="googleService" value="google" {% if config.service == 'google' %}checked{% endif %}>
+                            <label class="form-check-label" for="googleService">
+                                Google API
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="service" id="ollamaService" value="ollama" {% if config.service == 'ollama' %}checked{% endif %}>
+                            <label class="form-check-label" for="ollamaService">
+                                Ollama API
+                            </label>
+                        </div>
+                    </div>
+                    <div id="googleFields" {% if config.service != 'google' %}style="display: none;"{% endif %}>
+                        <div class="mb-3">
+                            <label for="google_api_key" class="form-label">API Key</label>
+                            <input type="text" class="form-control" id="google_api_key" name="google_api_key" placeholder="Enter your Google API key" value="{{ config.google_api_key }}">
+                        </div>
+                    </div>
+                    <div id="ollamaFields" {% if config.service != 'ollama' %}style="display: none;"{% endif %}>
+                        <div class="mb-3">
+                            <label for="ollama_api_key" class="form-label">API Key</label>
+                            <input type="text" class="form-control" id="ollama_api_key" name="ollama_api_key" placeholder="Enter your API key (if using OpenAI)" value="{{ config.ollama_api_key }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ollama_base_url" class="form-label">Base URL</label>
+                            <input type="text" class="form-control" id="ollama_base_url" name="ollama_base_url" placeholder="Enter the Ollama base URL" value="{{ config.ollama_base_url }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ollama_llm_model" class="form-label">LLM Model</label>
+                            <input type="text" class="form-control" id="ollama_llm_model" name="ollama_llm_model" placeholder="Enter LLM model name" value="{{ config.ollama_llm_model }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ollama_embedding_model" class="form-label">Embedding Model</label>
+                            <input type="text" class="form-control" id="ollama_embedding_model" name="ollama_embedding_model" placeholder="Enter embedding model name" value="{{ config.ollama_embedding_model }}">
+                        </div>
+                    </div>
+                    <div id="currentConfig" class="mb-3 p-3 rounded" style="background-color: #2c2c2c;">
+                        <h5>Current Configuration</h5>
+                        <p>Service: {{ config.service }}</p>
+                        {% if config.service == 'google' %}
+                            <p>API Key: {{ config.google_api_key }}</p>
+                        {% else %}
+                            <p>API Key: {{ config.ollama_api_key }}</p>
+                            <p>Base URL: {{ config.ollama_base_url }}</p>
+                            <p>LLM Model: {{ config.ollama_llm_model }}</p>
+                            <p>Embedding Model: {{ config.ollama_embedding_model }}</p>
+                        {% endif %}
+                    </div>
+                    <button type="submit" id="saveBtn" class="btn btn-primary w-100 mb-2">Save Configuration</button>
+                </form>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between mb-2">
+                    <button id="testBtn" class="btn btn-outline-secondary flex-grow-1 me-2">Test Models</button>
+                    <button id="reembedBtn" class="btn btn-outline-secondary flex-grow-1">Re-embed All Links</button>
+                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary w-100">
+                    <i class="lucide-arrow-left me-2"></i>
+                    Back to List
+                </a>
+            </div>
+        </div>
+    </div>
 
-        <h2>Google API Key</h2>
-        <input type="text" name="google_api_key" value="{{ config.google_api_key }}">
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle"></strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
 
-        <h2>Ollama Base URL</h2>
-        <input type="text" name="ollama_base_url" value="{{ config.ollama_base_url }}">
-
-        <input type="submit" value="Save Configuration">
-    </form>
-
-    <h2>Current Configuration</h2>
-    <p>Service: {{ config.service }}</p>
-    <p>Model: 
-        {% if config.service == 'google' %}
-            Gemini 1.5 Flash (LLM) + Text Embedding 004 (Embedding)
-        {% else %}
-            Llama3.1 (LLM) + All-MiniLM (Embedding)
-        {% endif %}
-    </p>
-
-    <button onclick="testModels()">Test Models</button>
-    <p id="testResult"></p>
-
-    <button onclick="embedAllLinks()" id="embedButton">Embed All Links</button>
-    <p id="embedResult"></p>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    function testModels() {
-        fetch('/test_models')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('testResult').innerText = data.message;
-            })
-            .catch(error => {
-                document.getElementById('testResult').innerText = "Error: " + error;
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('configForm');
+            const testBtn = document.getElementById('testBtn');
+            const reembedBtn = document.getElementById('reembedBtn');
+            const googleFields = document.getElementById('googleFields');
+            const ollamaFields = document.getElementById('ollamaFields');
+
+            function showToast(title, message) {
+                document.getElementById('toastTitle').textContent = title;
+                document.getElementById('toastBody').textContent = message;
+                const toastEl = document.querySelector('.toast');
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+
+            document.querySelectorAll('input[name="service"]').forEach((radio) => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'google') {
+                        googleFields.style.display = 'block';
+                        ollamaFields.style.display = 'none';
+                    } else {
+                        googleFields.style.display = 'none';
+                        ollamaFields.style.display = 'block';
+                    }
+                });
             });
-    }
 
-    function embedAllLinks() {
-        const button = document.getElementById('embedButton');
-        const result = document.getElementById('embedResult');
-        button.disabled = true;
-        button.innerText = 'Embedding... Please wait';
-        result.innerText = 'Embedding in progress...';
-
-        fetch('/embed_all_links', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                result.innerText = data.message;
-            })
-            .catch(error => {
-                result.innerText = "Error: " + error;
-            })
-            .finally(() => {
-                button.disabled = false;
-                button.innerText = 'Embed All Links';
+            testBtn.addEventListener('click', function() {
+                fetch('/test_models')
+                    .then(response => response.json())
+                    .then(data => {
+                        showToast('Model Test Result', data.message);
+                    })
+                    .catch(error => {
+                        showToast('Error', 'An error occurred while testing the models.');
+                        console.error('Error:', error);
+                    });
             });
-    }
 
-    document.getElementById('configForm').addEventListener('submit', function(event) {
-        const oldService = '{{ config.service }}';
-        const newService = document.getElementById('serviceSelect').value;
-        if (oldService !== newService) {
-            alert('You have changed the service. Please remember to embed all links after saving the configuration to ensure compatibility with the new model.');
-        }
-    });
+            reembedBtn.addEventListener('click', function() {
+                showToast('Re-embedding links', 'Re-embedding process started. This may take a while.');
+                console.log("Re-embedding links");
+            });
+        });
     </script>
 </body>
 </html>

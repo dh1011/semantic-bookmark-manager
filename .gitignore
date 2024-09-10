@@ -5,3 +5,5 @@ token.json
 .DS_Store
 __pycache__
 config.json
+bookmarks.csv
+link.txt

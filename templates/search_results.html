@@ -1,38 +1,274 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.16.29/font/lucide.min.css" rel="stylesheet">
+    <style>
+        /* Use the same styles as in index.html */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            padding: 20px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.5;
+        }
+        .bookmark-item {
+            background-color: #1e1e1e;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .bookmark-summary, .score {
+            font-style: italic;
+            color: #b0b0b0;
+        }
+        .edit-button, .save-button, .add-button, .config-link, .remove-button {
+            color: #ff6600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .remove-button {
+            color: #ff4d4d;
+        }
+        a {
+            color: #ff6600;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .search-form input[type="text"] {
+            background-color: #2c2c2c;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 10px;
+        }
+        .search-form input[type="submit"] {
+            background-color: #ff6600;
+            color: #121212;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .pagination a {
+            color: #ff6600;
+        }
+        .container {
+            max-width: 960px;
+            padding: 20px;
+        }
+        .card {
+            background-color: #1e1e1e;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .card-header {
+            background-color: #2c2c2c;
+            border-bottom: none;
+        }
+        .card-title a {
+            color: #ff6600;
+            text-decoration: none;
+        }
+        .card-title a:hover {
+            text-decoration: underline;
+        }
+        .btn-primary {
+            background-color: #ff6600;
+            border-color: #ff6600;
+        }
+        .btn-primary:hover {
+            background-color: #e65c00;
+            border-color: #e65c00;
+        }
+        .btn-outline-secondary {
+            color: #ff6600;
+            border-color: #ff6600;
+        }
+        .btn-outline-secondary:hover {
+            background-color: #ff6600;
+            color: #121212;
+        }
+    </style>
 </head>
 <body>
-    <h1>Search Results</h1>
-    <a href="{{ url_for('index') }}" class="back-link">Back to all bookmarks</a>
-    <form class="search-form" action="{{ url_for('search') }}" method="get">
-        <input type="text" name="query" placeholder="Search bookmarks..." value="{{ query }}">
-        <input type="submit" value="Search">
-    </form>
-    <ul style="list-style-type: none; padding: 0;">
-    {% for bookmark, score in bookmarks %}
-        <li class="bookmark-item">
-            <a href="{{ bookmark.link }}">{{ bookmark.base_url }}</a>
-            <a class="edit-button" onclick="toggleEdit(this)">Edit</a>
-            <a class="save-button" onclick="saveChanges(this, '{{ bookmark.link }}')">Save</a>
-            <a href="{{ url_for('remove_bookmark', link=bookmark.link) }}" class="remove-button" onclick="return confirmRemove(this)">Remove</a><br>
-            <span class="bookmark-summary">{{ bookmark.summary }}</span>
-            <span class="score">(Score: {{ "%.4f"|format(score) }})</span>
-        </li>
-    {% endfor %}
-    </ul>
-    <div class="pagination">
-    {% if page > 1 %}
-        <a href="{{ url_for('search', query=query, page=page-1) }}">Previous</a>
-    {% endif %}
-    Page {{ page }} of {{ total_pages }}
-    {% if page < total_pages %}
-        <a href="{{ url_for('search', query=query, page=page+1) }}">Next</a>
-    {% endif %}
+    <div class="container mx-auto p-4">
+        <header class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">Search Results</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to all bookmarks</a>
+        </header>
+
+        <form class="mb-4 d-flex" action="{{ url_for('search') }}" method="get">
+            <input type="text" name="query" class="form-control me-2" placeholder="Search bookmarks..." value="{{ query }}" required>
+            <button type="submit" class="btn btn-primary">
+                <i class="lucide-search me-2"></i>Search
+            </button>
+        </form>
+
+        <div class="mb-4">
+            {% for bookmark, score in bookmarks %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <a href="{{ bookmark.link }}" class="bookmark-title" data-base-url="{{ bookmark.base_url }}">{{ bookmark.base_url }}</a>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text bookmark-summary">{{ bookmark.summary }}</p>
+                    <p class="card-text"><small class="text-muted">Score: {{ "%.4f"|format(score) }}</small></p>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" onclick="toggleEdit(this)">Edit</button>
+                        <button class="btn btn-sm btn-outline-secondary me-2 save-btn" onclick="saveChanges(this, '{{ bookmark.link }}')" style="display: none;">Save</button>
+                        <button class="btn btn-sm btn-outline-secondary me-2 cancel-btn" onclick="cancelEdit(this)" style="display: none;">Cancel</button>
+                        <a href="{{ url_for('remove_bookmark', link=bookmark.link) }}" class="btn btn-sm btn-outline-danger remove-btn" onclick="return confirmRemove(this)" style="display: none;">Remove</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+            {% if page > 1 %}
+            <a href="{{ url_for('search', query=query, page=page-1) }}" class="btn btn-outline-secondary">
+                <i class="lucide-chevron-left me-2"></i>Previous
+            </a>
+            {% else %}
+            <button class="btn btn-outline-secondary" disabled>
+                <i class="lucide-chevron-left me-2"></i>Previous
+            </button>
+            {% endif %}
+            
+            <span>Page {{ page }} of {{ total_pages }}</span>
+            
+            {% if page < total_pages %}
+            <a href="{{ url_for('search', query=query, page=page+1) }}" class="btn btn-outline-secondary">
+                Next<i class="lucide-chevron-right ms-2"></i>
+            </a>
+            {% else %}
+            <button class="btn btn-outline-secondary" disabled>
+                Next<i class="lucide-chevron-right ms-2"></i>
+            </button>
+            {% endif %}
+        </div>
     </div>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+    function toggleEdit(btn) {
+        const card = btn.closest('.card');
+        const title = card.querySelector('.bookmark-title');
+        const summary = card.querySelector('.bookmark-summary');
+        const editBtn = card.querySelector('.edit-btn');
+        const saveBtn = card.querySelector('.save-btn');
+        const cancelBtn = card.querySelector('.cancel-btn');
+        const removeBtn = card.querySelector('.remove-btn');
+
+        title.contentEditable = true;
+        summary.contentEditable = true;
+        title.classList.add('editable');
+        summary.classList.add('editable');
+
+        // Store original content for cancellation
+        title.dataset.original = title.textContent;
+        summary.dataset.original = summary.textContent;
+
+        // Display full link instead of base_url
+        title.textContent = title.href;
+
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
+        removeBtn.style.display = 'inline-block';
+    }
+
+    function cancelEdit(btn) {
+        const card = btn.closest('.card');
+        const title = card.querySelector('.bookmark-title');
+        const summary = card.querySelector('.bookmark-summary');
+        const editBtn = card.querySelector('.edit-btn');
+        const saveBtn = card.querySelector('.save-btn');
+        const cancelBtn = card.querySelector('.cancel-btn');
+        const removeBtn = card.querySelector('.remove-btn');
+
+        title.contentEditable = false;
+        summary.contentEditable = false;
+        title.classList.remove('editable');
+        summary.classList.remove('editable');
+
+        // Restore original content
+        title.textContent = title.dataset.baseUrl;
+        summary.textContent = summary.dataset.original;
+
+        editBtn.style.display = 'inline-block';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        removeBtn.style.display = 'none';
+    }
+
+    function saveChanges(btn, originalLink) {
+        const card = btn.closest('.card');
+        const title = card.querySelector('.bookmark-title');
+        const summary = card.querySelector('.bookmark-summary');
+
+        const newLink = title.textContent.trim();
+        const newSummary = summary.textContent.trim();
+
+        fetch('/update_bookmark', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                original_link: originalLink,
+                new_link: newLink,
+                new_summary: newSummary
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Bookmark updated successfully');
+                // Update the base_url after successful update
+                title.dataset.baseUrl = new URL(newLink).hostname;
+                title.textContent = title.dataset.baseUrl;
+                title.href = newLink;
+                summary.textContent = newSummary;
+
+                // Reset edit mode
+                title.contentEditable = false;
+                summary.contentEditable = false;
+                title.classList.remove('editable');
+                summary.classList.remove('editable');
+
+                const editBtn = card.querySelector('.edit-btn');
+                const saveBtn = card.querySelector('.save-btn');
+                const cancelBtn = card.querySelector('.cancel-btn');
+                const removeBtn = card.querySelector('.remove-btn');
+
+                editBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                removeBtn.style.display = 'none';
+
+                // Refresh the page after update
+                location.reload();
+            } else {
+                console.error('Failed to update bookmark');
+                // Optionally, show an error message to the user
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            // Optionally, show an error message to the user
+        });
+    }
+
+    function confirmRemove(btn) {
+        return confirm('Are you sure you want to remove this bookmark?');
+    }
+    </script>
 </body>
 </html>
