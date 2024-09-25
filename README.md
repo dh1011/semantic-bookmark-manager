@@ -21,6 +21,10 @@ It is a simple Flask app with minimal CSS and JavaScript, quick to set up and ea
     - 🦙 Ollama
         - Embedding model: `all-minilm`
         - LLM model: `llama3.1`
+- 🏷️ Tagging system
+    - View tags under bookmark descriptions
+    - Search bookmarks by tags
+    - Automatically suggest tags based on bookmark content
     
 ## Prerequisites
 - One of the following:
@@ -60,13 +64,13 @@ It is a simple Flask app with minimal CSS and JavaScript, quick to set up and ea
 ## 🔗 API Integration
 
 The application provides API endpoints for integration with other tools. Details are below:
-- **POST** `/api/search`
-```
+- **POST** `/api/search````
 Request format:
 {
     "query": "search query string",
     "page": 1,  // optional, default is 1
-    "per_page": 10  // optional, default is 10
+    "per_page": 10,  // optional, default is 10
+    "tags": ["tag1", "tag2"]  // optional, filter by tags
 }
 
 Returns:
@@ -77,7 +81,8 @@ Returns:
             "summary": "bookmark summary",
             "base_url": "base url of the bookmark",
             "timestamp": "bookmark creation timestamp",
-            "similarity": float  // similarity score
+            "similarity": float,  // similarity score
+            "tags": ["tag1", "tag2"]  // tags associated with the bookmark
         },
         ...
     ],
@@ -86,31 +91,3 @@ Returns:
     "per_page": int,
     "total_pages": int
 }
-```
-- **POST** `/api/add`
-```
-Request format:
-{
-    "url": "https://example.com"
-}
-
-Returns:
-- 201: Bookmark added successfully
-- 400: Missing url parameter or bookmark already exists
-- 500: Internal server error
-```
-
-## 📝 Notes
-
-- At least two AI models are required: one for embedding and one for language processing (LLM)
-- Google Gemini is recommended as it is cloud-based and the Free Tier is more than enough to run this app (until they change the pricing 😟)
-- Ollama support is available, but you need to run it on the server side for mobile devices to work (until Ollama has support for mobile devices 👍)
-- When switching between models, you need to reembed all the urls. This is due to the different numpy array shape between **text-embedding-004** and **all-minilm**.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📜 License
-
-This project is open-source and available under the MIT License.

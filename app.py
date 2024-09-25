@@ -42,7 +42,7 @@ def save_config(config):
 if not os.path.exists('bookmarks.csv'):
     with open('bookmarks.csv', 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['link', 'summary', 'embedding', 'base_url', 'timestamp'])
+        writer.writerow(['link', 'summary', 'embedding', 'base_url', 'timestamp', 'tags'])
 
 # Load configuration
 config = load_config()
@@ -97,65 +97,83 @@ def embed_all_links(service="google"):
     """Update embeddings for all bookmarks if necessary."""
     sample_query_embedding = get_embedding("Test", service=service)
     bookmarks = read_bookmarks()
-    if sample_query_embedding.shape != bookmarks[0]['embedding'].shape:
+    if bookmarks and sample_query_embedding.shape != bookmarks[0]['embedding'].shape:
         for bookmark in bookmarks:
-            embedding = get_embedding(bookmark['link'], service=service)
+            embedding_input = f"{bookmark['link']} {bookmark['summary']} {' '.join(bookmark.get('tags', []))}"
+            embedding = get_embedding(embedding_input, service=service)
             bookmark['embedding'] = embedding
         write_bookmarks(bookmarks)
 
 def get_summary(url, service="google", base_url="http://localhost:11434"):
-    """Get summary of webpage content using specified service."""
-    response = requests.get(url, timeout=10)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    content = soup.get_text()
-    content_cleaned = ' '.join(content.split())[:1000]
-    prompt = f"Here is the website content: {content_cleaned}. Now summarize it in 20 words or less."
-    if service == "google":
-        # Google API summary logic
-        api_key = config['google_api_key']
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-        if not api_key:
-            raise ValueError("Google API Key not found in configuration")
-        params = {
-            "key": api_key
-        }
-        headers = {
-            "Content-Type": "application/json"
-        }
-        data = {
-            "contents": [{
-                "parts": [{
+    """Get summary and tags of webpage content using specified service."""
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        content = soup.get_text()
+        content_cleaned = ' '.join(content.split())[:1000]
+        prompt = f"""Here is the website content: {content_cleaned}. Now summarize it in 20 words or less. Then generate no more than 10 tags that would be relevant to this content. Provide the output in JSON format following this schema: {{"summary": "string", "tags": ["string", ...]}}"""
+        if service == "google":
+            # Google API summary logic
+            api_key = config['google_api_key']
+            api_url = "https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
+            if not api_key:
+                raise ValueError("Google API Key not found in configuration")
+            params = {
+                "key": api_key
+            }
+            headers = {
+                "Content-Type": "application/json"
+            }
+            data = {
+                "prompt": {
                     "text": prompt
-                }]
-            }]
-        }
-        response = requests.post(url, params=params, headers=headers, json=data)
-        if response.status_code == 200:
-            content = response.json().get("candidates", [{}])[0].get("content", {})
-            summary = content.get("parts", [{}])[0].get("text", "")
-            return summary.strip()
+                }
+            }
+            response = requests.post(api_url, params=params, headers=headers, json=data)
+            if response.status_code == 200:
+                content = response.json().get("candidates", [{}])[0].get("output", "")
+                # Now parse the content as JSON
+                try:
+                    result = json.loads(content)
+                    summary = result.get('summary', '').strip()
+                    tags = result.get('tags', [])
+                    return summary, tags
+                except json.JSONDecodeError:
+                    print("Failed to parse JSON from response")
+                    return "No summary found", []
+            else:
+                print(f"Error: {response.status_code}")
+                print(response.text)
+                return "No summary found", []
         else:
-            print(f"Error: {response.status_code}")
-            print(response.text)
-            return "No summary found"
-    else:
-        # Ollama API summary logic
-        url = f"{base_url}/api/generate"
-        headers = {
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "llama3.1",
-            "prompt": prompt,
-            "stream": False
-        }
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 200:
-            return response.json().get("response", "").strip()
-        else:
-            print(f"Error: {response.status_code}")
-            print(response.text)
-            return  "No summary found"
+            # Ollama API summary logic
+            url = f"{base_url}/api/generate"
+            headers = {
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": config['ollama_llm_model'],
+                "prompt": prompt,
+                "stream": False
+            }
+            response = requests.post(url, headers=headers, json=data)
+            if response.status_code == 200:
+                content = response.json().get("response", "").strip()
+                try:
+                    result = json.loads(content)
+                    summary = result.get('summary', '').strip()
+                    tags = result.get('tags', [])
+                    return summary, tags
+                except json.JSONDecodeError:
+                    print("Failed to parse JSON from response")
+                    return "No summary found", []
+            else:
+                print(f"Error: {response.status_code}")
+                print(response.text)
+                return  "No summary found", []
+    except Exception as e:
+        print(f"Error processing URL {url}: {str(e)}")
+        return "Error generating summary", []
 
 def read_bookmarks():
     """Read bookmarks from CSV file."""
@@ -164,13 +182,14 @@ def read_bookmarks():
         reader = csv.reader(f)
         next(reader)  # Skip header
         for row in reader:
-            if len(row) >= 5:
+            if len(row) >= 6:
                 bookmarks.append({
                     'link': row[0],
                     'summary': row[1],
                     'embedding': np.array(ast.literal_eval(row[2])),
                     'base_url': row[3],
-                    'timestamp': row[4]
+                    'timestamp': row[4],
+                    'tags': ast.literal_eval(row[5]) if row[5] else []
                 })
     return sorted(bookmarks, key=lambda x: x['timestamp'], reverse=True)
 
@@ -178,23 +197,24 @@ def write_bookmarks(bookmarks):
     """Write bookmarks to CSV file."""
     with open('bookmarks.csv', 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['link', 'summary', 'embedding', 'base_url', 'timestamp'])
+        writer.writerow(['link', 'summary', 'embedding', 'base_url', 'timestamp', 'tags'])
         for bookmark in bookmarks:
             writer.writerow([
                 bookmark['link'],
                 bookmark['summary'],
                 bookmark['embedding'].tolist(),
                 bookmark['base_url'],
-                bookmark['timestamp']
+                bookmark['timestamp'],
+                bookmark['tags']
             ])
-    
+        
 def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray):
     """Calculate cosine similarity between two vectors."""
     dot_product = np.dot(vec1, vec2)
     norm1 = np.linalg.norm(vec1)
     norm2 = np.linalg.norm(vec2)
     return dot_product / (norm1 * norm2)
-
+    
 def semantic_search(query_vector: np.ndarray, document_vectors: List[np.ndarray]):
     """Perform semantic search using cosine similarity."""
     similarities = [
@@ -274,15 +294,17 @@ def add_bookmark():
             if bookmark_url:
                 base_url = re.search(r'https?://([^/]+)', bookmark_url)
                 base_url = base_url.group(1) if base_url else bookmark_url
-                summary = get_summary(bookmark_url, service=config['service'], base_url=config['ollama_base_url'])
-                embedding_bookmark = np.array(get_embedding(f"{bookmark_url} {summary}", service=config['service'], base_url=config['ollama_base_url']))
+                summary, tags = get_summary(bookmark_url, service=config['service'], base_url=config['ollama_base_url'])
+                embedding_input = f"{bookmark_url} {summary} {' '.join(tags)}"
+                embedding_bookmark = np.array(get_embedding(embedding_input, service=config['service'], base_url=config['ollama_base_url']))
                 if not any(b['link'] == bookmark_url for b in existing_bookmarks):
                     new_bookmark = {
                         'link': bookmark_url,
                         'summary': summary,
                         'embedding': embedding_bookmark,
                         'base_url': base_url,
-                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'tags': tags
                     }
                     existing_bookmarks.append(new_bookmark)
         write_bookmarks(existing_bookmarks)
@@ -320,7 +342,7 @@ def test_models():
         if not isinstance(embedding, np.ndarray) or embedding.size == 0:
             return jsonify({"message": "Embedding test failed. Check your configuration and try again."}), 400
         test_url = "https://example.com"
-        summary = get_summary(test_url, service=config['service'], base_url=config['ollama_base_url'])
+        summary, tags = get_summary(test_url, service=config['service'], base_url=config['ollama_base_url'])
         if not summary:
             return jsonify({"message": "Summary test failed. Check your configuration and try again."}), 400
         return jsonify({"message": "Models test successful. Embedding and summary generation are working correctly."}), 200
@@ -347,6 +369,7 @@ def api_search():
                 "summary": "bookmark summary",
                 "base_url": "base url of the bookmark",
                 "timestamp": "bookmark creation timestamp",
+                "tags": ["tag1", "tag2", ...],
                 "similarity": float  // similarity score
             },
             ...
@@ -390,6 +413,7 @@ def api_search():
                     "summary": result['summary'],
                     "base_url": result['base_url'],
                     "timestamp": result['timestamp'],
+                    "tags": result.get('tags', []),
                     "similarity": result['similarity']
                 } for result in paginated_results
             ],
@@ -429,15 +453,17 @@ def api_add_bookmark():
 
         base_url = re.search(r'https?://([^/]+)', bookmark_url)
         base_url = base_url.group(1) if base_url else bookmark_url
-        summary = get_summary(bookmark_url, service=config['service'], base_url=config['ollama_base_url'])
-        embedding_bookmark = np.array(get_embedding(f"{bookmark_url} {summary}", service=config['service'], base_url=config['ollama_base_url']))
+        summary, tags = get_summary(bookmark_url, service=config['service'], base_url=config['ollama_base_url'])
+        embedding_input = f"{bookmark_url} {summary} {' '.join(tags)}"
+        embedding_bookmark = np.array(get_embedding(embedding_input, service=config['service'], base_url=config['ollama_base_url']))
 
         new_bookmark = {
             'link': bookmark_url,
             'summary': summary,
             'embedding': embedding_bookmark,
             'base_url': base_url,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'tags': tags
         }
         existing_bookmarks.append(new_bookmark)
         write_bookmarks(existing_bookmarks)
@@ -448,7 +474,8 @@ def api_add_bookmark():
                 "link": new_bookmark['link'],
                 "summary": new_bookmark['summary'],
                 "base_url": new_bookmark['base_url'],
-                "timestamp": new_bookmark['timestamp']
+                "timestamp": new_bookmark['timestamp'],
+                "tags": new_bookmark['tags']
             }
         }), 201
     except Exception as e:

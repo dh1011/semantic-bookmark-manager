@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <title>Search Results</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.16.29/font/lucide.min.css" rel="stylesheet">
@@ -109,21 +110,27 @@
         </form>
 
         <div class="mb-4">
-            {% for bookmark, score in bookmarks %}
+            {% for bookmark in bookmarks %}
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
-                        <a href="{{ bookmark.link }}" class="bookmark-title" data-base-url="{{ bookmark.base_url }}">{{ bookmark.base_url }}</a>
+                        <a href="{{ bookmark[0] }}" class="bookmark-title" data-base-url="{{ bookmark[2] }}">{{ bookmark[2] }}</a>
                     </h5>
+                    <small class="text-muted bookmark-full-link">{{ bookmark[0] }}</small>
                 </div>
                 <div class="card-body">
-                    <p class="card-text bookmark-summary">{{ bookmark.summary }}</p>
-                    <p class="card-text"><small class="text-muted">Score: {{ "%.4f"|format(score) }}</small></p>
+                    <p class="card-text bookmark-summary">{{ bookmark[1] }}</p>
+                    <div class="mb-2 bookmark-tags">
+                        {% for tag in bookmark[4] %}
+                        <span class="badge bg-secondary me-1 clickable-tag" onclick="searchTag('{{ tag }}')">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    <p class="card-text"><small class="text-muted">Score: {{ "%.4f"|format(bookmark[5]) }}</small></p>
                     <div class="mt-2">
                         <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" onclick="toggleEdit(this)">Edit</button>
-                        <button class="btn btn-sm btn-outline-secondary me-2 save-btn" onclick="saveChanges(this, '{{ bookmark.link }}')" style="display: none;">Save</button>
+                        <button class="btn btn-sm btn-outline-secondary me-2 save-btn" onclick="saveChanges(this, '{{ bookmark[0] }}')" style="display: none;">Save</button>
                         <button class="btn btn-sm btn-outline-secondary me-2 cancel-btn" onclick="cancelEdit(this)" style="display: none;">Cancel</button>
-                        <a href="{{ url_for('remove_bookmark', link=bookmark.link) }}" class="btn btn-sm btn-outline-danger remove-btn" onclick="return confirmRemove(this)" style="display: none;">Remove</a>
+                        <a href="{{ url_for('remove_bookmark', link=bookmark[0]) }}" class="btn btn-sm btn-outline-danger remove-btn" onclick="return confirmRemove(this)" style="display: none;">Remove</a>
                     </div>
                 </div>
             </div>
@@ -161,6 +168,7 @@
         const card = btn.closest('.card');
         const title = card.querySelector('.bookmark-title');
         const summary = card.querySelector('.bookmark-summary');
+        const tags = card.querySelector('.bookmark-tags');
         const editBtn = card.querySelector('.edit-btn');
         const saveBtn = card.querySelector('.save-btn');
         const cancelBtn = card.querySelector('.cancel-btn');
@@ -168,12 +176,15 @@
 
         title.contentEditable = true;
         summary.contentEditable = true;
+        tags.contentEditable = true;
         title.classList.add('editable');
         summary.classList.add('editable');
+        tags.classList.add('editable');
 
         // Store original content for cancellation
         title.dataset.original = title.textContent;
         summary.dataset.original = summary.textContent;
+        tags.dataset.original = tags.innerHTML;
 
         // Display full link instead of base_url
         title.textContent = title.href;
@@ -188,6 +199,7 @@
         const card = btn.closest('.card');
         const title = card.querySelector('.bookmark-title');
         const summary = card.querySelector('.bookmark-summary');
+        const tags = card.querySelector('.bookmark-tags');
         const editBtn = card.querySelector('.edit-btn');
         const saveBtn = card.querySelector('.save-btn');
         const cancelBtn = card.querySelector('.cancel-btn');
@@ -195,12 +207,15 @@
 
         title.contentEditable = false;
         summary.contentEditable = false;
+        tags.contentEditable = false;
         title.classList.remove('editable');
         summary.classList.remove('editable');
+        tags.classList.remove('editable');
 
         // Restore original content
         title.textContent = title.dataset.baseUrl;
         summary.textContent = summary.dataset.original;
+        tags.innerHTML = tags.dataset.original;
 
         editBtn.style.display = 'inline-block';
         saveBtn.style.display = 'none';
@@ -212,9 +227,11 @@
         const card = btn.closest('.card');
         const title = card.querySelector('.bookmark-title');
         const summary = card.querySelector('.bookmark-summary');
+        const tags = card.querySelector('.bookmark-tags');
 
         const newLink = title.textContent.trim();
         const newSummary = summary.textContent.trim();
+        const newTags = Array.from(tags.querySelectorAll('.badge')).map(badge => badge.textContent.trim());
 
         fetch('/update_bookmark', {
             method: 'POST',
@@ -224,7 +241,8 @@
             body: JSON.stringify({
                 original_link: originalLink,
                 new_link: newLink,
-                new_summary: newSummary
+                new_summary: newSummary,
+                new_tags: newTags
             }),
         })
         .then(response => response.json())
@@ -236,12 +254,15 @@
                 title.textContent = title.dataset.baseUrl;
                 title.href = newLink;
                 summary.textContent = newSummary;
+                tags.innerHTML = newTags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('');
 
                 // Reset edit mode
                 title.contentEditable = false;
                 summary.contentEditable = false;
+                tags.contentEditable = false;
                 title.classList.remove('editable');
                 summary.classList.remove('editable');
+                tags.classList.remove('editable');
 
                 const editBtn = card.querySelector('.edit-btn');
                 const saveBtn = card.querySelector('.save-btn');
@@ -268,6 +289,10 @@
 
     function confirmRemove(btn) {
         return confirm('Are you sure you want to remove this bookmark?');
+    }
+
+    function searchTag(tag) {
+        window.location.href = "{{ url_for('search') }}?query=" + encodeURIComponent(tag);
     }
     </script>
 </body>
