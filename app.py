@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 import json
 import numpy as np
 from typing import List
+import google.generativeai as genai
+from ratelimit import limits, sleep_and_retry
 import os
 
 # Flask application initialization
@@ -104,6 +106,8 @@ def embed_all_links(service="google"):
             bookmark['embedding'] = embedding
         write_bookmarks(bookmarks)
 
+@sleep_and_retry
+@limits(calls=14, period=1)
 def get_summary(url, service="google", base_url="http://localhost:11434"):
     """Get summary and tags of webpage content using specified service."""
     try:
@@ -113,37 +117,19 @@ def get_summary(url, service="google", base_url="http://localhost:11434"):
         content_cleaned = ' '.join(content.split())[:1000]
         prompt = f"""Here is the website content: {content_cleaned}. Now summarize it in 20 words or less. Then generate no more than 10 tags that would be relevant to this content. Provide the output in JSON format following this schema: {{"summary": "string", "tags": ["string", ...]}}"""
         if service == "google":
-            # Google API summary logic
-            api_key = config['google_api_key']
-            api_url = "https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
-            if not api_key:
-                raise ValueError("Google API Key not found in configuration")
-            params = {
-                "key": api_key
-            }
-            headers = {
-                "Content-Type": "application/json"
-            }
-            data = {
-                "prompt": {
-                    "text": prompt
-                }
-            }
-            response = requests.post(api_url, params=params, headers=headers, json=data)
-            if response.status_code == 200:
-                content = response.json().get("candidates", [{}])[0].get("output", "")
-                # Now parse the content as JSON
-                try:
-                    result = json.loads(content)
-                    summary = result.get('summary', '').strip()
-                    tags = result.get('tags', [])
-                    return summary, tags
-                except json.JSONDecodeError:
-                    print("Failed to parse JSON from response")
-                    return "No summary found", []
+            # Google API summary logic using genai library
+            genai.configure(api_key=config['google_api_key'])
+            model = genai.GenerativeModel('gemini-1.5-flash',
+                                          generation_config={"response_mime_type": "application/json"})
+            response = model.generate_content(prompt)
+            
+            if response.candidates and response.candidates[0].content:
+                result = json.loads(response.candidates[0].content.parts[0].text)
+                summary = result.get('summary', '').strip()
+                tags = result.get('tags', [])
+                return summary, tags
             else:
-                print(f"Error: {response.status_code}")
-                print(response.text)
+                print("Failed to generate summary and tags")
                 return "No summary found", []
         else:
             # Ollama API summary logic
@@ -264,20 +250,17 @@ def search():
     query_embedding = get_embedding(query, service=config['service'], base_url=config['ollama_base_url'])
     corpus_embeddings = [b['embedding'] for b in bookmarks]
     hits = semantic_search(query_embedding, corpus_embeddings)
-    sorted_bookmarks = []
-    sorted_scores = []
-    for idx, score in hits:
-        sorted_bookmarks.append(bookmarks[idx])
-        sorted_scores.append(score)
+    sorted_bookmarks = [
+        (bookmarks[idx], score) for idx, score in hits
+    ]
     page = request.args.get('page', 1, type=int)
     per_page = 10
     total_pages = ceil(len(sorted_bookmarks) / per_page)
     start = (page - 1) * per_page
     end = start + per_page
     paginated_bookmarks = sorted_bookmarks[start:end]
-    paginated_scores = sorted_scores[start:end]
     return render_template('search_results.html', 
-                           bookmarks=zip(paginated_bookmarks, paginated_scores), 
+                           bookmarks=paginated_bookmarks, 
                            query=query,
                            page=page,
                            total_pages=total_pages)

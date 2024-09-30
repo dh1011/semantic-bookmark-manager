@@ -110,28 +110,25 @@
         </form>
 
         <div class="mb-4">
-            {% for bookmark in bookmarks %}
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <a href="{{ bookmark[0] }}" class="bookmark-title" data-base-url="{{ bookmark[2] }}">{{ bookmark[2] }}</a>
-                    </h5>
-                    <small class="text-muted bookmark-full-link">{{ bookmark[0] }}</small>
-                </div>
+            {% for bookmark, score in bookmarks %}
+            <div class="card mb-3">
                 <div class="card-body">
-                    <p class="card-text bookmark-summary">{{ bookmark[1] }}</p>
-                    <div class="mb-2 bookmark-tags">
-                        {% for tag in bookmark[4] %}
-                        <span class="badge bg-secondary me-1 clickable-tag" onclick="searchTag('{{ tag }}')">{{ tag }}</span>
+                    <h5 class="card-title">
+                        <a href="{{ bookmark.link }}" target="_blank">{{ bookmark.link }}</a>
+                    </h5>
+                    <p class="card-text">{{ bookmark.summary }}</p>
+                    <p class="card-text">
+                        {% for tag in bookmark.tags %}
+                        <span class="badge bg-secondary">{{ tag }}</span>
                         {% endfor %}
-                    </div>
-                    <p class="card-text"><small class="text-muted">Score: {{ "%.4f"|format(bookmark[5]) }}</small></p>
-                    <div class="mt-2">
-                        <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" onclick="toggleEdit(this)">Edit</button>
-                        <button class="btn btn-sm btn-outline-secondary me-2 save-btn" onclick="saveChanges(this, '{{ bookmark[0] }}')" style="display: none;">Save</button>
-                        <button class="btn btn-sm btn-outline-secondary me-2 cancel-btn" onclick="cancelEdit(this)" style="display: none;">Cancel</button>
-                        <a href="{{ url_for('remove_bookmark', link=bookmark[0]) }}" class="btn btn-sm btn-outline-danger remove-btn" onclick="return confirmRemove(this)" style="display: none;">Remove</a>
-                    </div>
+                    </p>
+                    <p class="card-text">
+                        <small class="text-muted">Base URL: {{ bookmark.base_url }}</small>
+                    </p>
+                    <p class="card-text">
+                        <small class="text-muted">Added on: {{ bookmark.timestamp }}</small>
+                    </p>
+                    <p class="card-text"><small class="text-muted">Score: {{ "%.4f"|format(score) }}</small></p>
                 </div>
             </div>
             {% endfor %}

@@ -64,7 +64,8 @@ It is a simple Flask app with minimal CSS and JavaScript, quick to set up and ea
 ## 🔗 API Integration
 
 The application provides API endpoints for integration with other tools. Details are below:
-- **POST** `/api/search````
+- **POST** `/api/search`
+```
 Request format:
 {
     "query": "search query string",
@@ -91,3 +92,25 @@ Returns:
     "per_page": int,
     "total_pages": int
 }
+```
+- **POST** `/api/add`
+```
+Request format:
+{
+    "url": "https://example.com"
+}
+Returns:
+- 201: Bookmark added successfully
+- 400: Missing url parameter or bookmark already exists
+- 500: Internal server error
+```
+
+## 📝 Notes
+- At least two AI models are required: one for embedding and one for language processing (LLM)
+- Google Gemini is recommended as it is cloud-based and the Free Tier is more than enough to run this app (until they change the pricing 😟)
+- Ollama support is available, but you need to run it on the server side for mobile devices to work (until Ollama has support for mobile devices 👍)
+- When switching between models, you need to reembed all the urls. This is due to the different numpy array shape between **text-embedding-004** and **all-minilm**.
+## 🤝 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
+## 📜 License
+This project is open-source and available under the MIT License.
